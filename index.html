@@ -3,49 +3,34 @@
 <head>
     <title>The Station - Chapter 1</title>
     <style>
-        /* This makes the game fill the whole browser window */
-        body, html { margin: 0; padding: 0; width: 100%; height: 100%; background: #050508; overflow: hidden; display: flex; justify-content: center; align-items: center; }
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; background: #000; overflow: hidden; }
+        canvas { display: block; width: 100vw; height: 100vh; image-rendering: pixelated; }
         
-        #game-container { 
-            position: relative; 
-            width: 100vw; /* 100% of Viewport Width */
-            height: 100vh; /* 100% of Viewport Height */
-            overflow: hidden; 
-            cursor: pointer; 
+        #overlay { 
+            position: absolute; inset: 0; background: #000; color: white; 
+            display: flex; justify-content: center; align-items: center; 
+            font-family: 'Courier New', monospace; z-index: 10; cursor: pointer; 
         }
-
-        canvas { 
-            display: block; 
-            width: 100%; 
-            height: 100%; 
-            object-fit: cover; /* Keeps it from stretching weirdly */
-            image-rendering: pixelated; 
-        }
-
-        #overlay { position: absolute; inset: 0; background: #000; display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 10; transition: opacity 2s; color: #a9b1d6; font-family: 'Courier New', monospace; }
 
         #dialogue-box { 
-            position: absolute; bottom: 50px; left: 50%; transform: translateX(-50%); 
-            width: 80%; max-width: 600px; background: rgba(10, 10, 15, 0.9); 
+            position: absolute; bottom: 8%; left: 50%; transform: translateX(-50%); 
+            width: 70%; background: rgba(10, 10, 15, 0.85); 
             border-left: 4px solid #7aa2f7; padding: 20px; color: #a9b1d6; 
-            font-family: 'Courier New', monospace; font-size: 16px; pointer-events: none; 
+            font-family: 'Courier New', monospace; pointer-events: none; 
         }
     </style>
 </head>
 <body>
 
-<div id="game-container" onclick="startGame()">
-    <div id="overlay"><h1>HOW WE REMEMBER</h1><p>Click to step into the rain</p></div>
-    <canvas id="gameCanvas"></canvas>
-    <div id="dialogue-box"></div>
-</div>
+<div id="overlay" onclick="start()"><h1>CLICK TO BEGIN</h1></div>
+<div id="dialogue-box"></div>
+<canvas id="gameCanvas"></canvas>
 
 <script>
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
     const diagBox = document.getElementById('dialogue-box');
 
-    // Resize canvas to match window
     function resize() {
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
@@ -53,26 +38,22 @@
     window.addEventListener('resize', resize);
     resize();
 
+    // --- LOAD YOUR IMAGES ---
+    const bg = new Image();
+    bg.src = 'bg.png'; // <--- CHANGE THIS to your actual filename if it's not bg.png
+
     let gameStarted = false;
-    let player = { x: 0, y: 0, w: 64, h: 64, speed: 5 };
+    let player = { x: 0, y: 0, w: 40, h: 80, speed: 6 };
     let keys = {};
 
-    // IMAGES
-    const bg = new Image();
-    bg.src = 'https://img.itch.zone/aW1nLzI5MzkyOTYucG5n/original/L0vOn4.png'; 
-
-    const sprite = new Image();
-    sprite.src = 'https://i.imgur.com/7S8uA0m.png'; // Small pixel character
-
-    function startGame() {
-        if (!gameStarted) {
-            document.getElementById('overlay').style.opacity = "0";
-            setTimeout(() => document.getElementById('overlay').style.display = "none", 2000);
-            gameStarted = true;
-            typeWriter("The train station hasn't changed... but I have.");
-        }
+    function start() {
+        document.getElementById('overlay').style.opacity = "0";
+        setTimeout(() => document.getElementById('overlay').style.display = "none", 1000);
+        gameStarted = true;
+        typeWriter("I shouldn't have come back. The air here tastes like memories.");
     }
 
+    // Typewriter effect
     let targetText = ""; let currentText = ""; let charIndex = 0;
     function typeWriter(text) {
         if (targetText === text) return;
@@ -93,31 +74,36 @@
     function draw() {
         if (!gameStarted) { requestAnimationFrame(draw); return; }
 
-        ctx.fillStyle = "#1a1b26";
+        ctx.fillStyle = "#050508";
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        // Ground level based on screen height
-        let groundY = canvas.height * 0.75;
-        player.y = groundY - player.h;
+        // 1. Draw your "Stunning" Background
+        if (bg.complete) {
+            // This stretches the BG to fill the screen
+            ctx.drawImage(bg, 0, 0, canvas.width, canvas.height);
+        }
 
-        // Background (Parallax)
-        let bgWidth = canvas.height * (800/400); // Maintain aspect ratio
-        let bgX = -(player.x * 0.5) % bgWidth;
-        ctx.drawImage(bg, bgX, 0, bgWidth, canvas.height);
-        ctx.drawImage(bg, bgX + bgWidth, 0, bgWidth, canvas.height);
-
+        // 2. Movement logic
         if (keys['ArrowRight']) player.x += player.speed;
         if (keys['ArrowLeft']) player.x -= player.speed;
 
-        // Draw Player Sprite
-        ctx.drawImage(sprite, canvas.width/2 - player.w/2, player.y, player.w, player.h);
+        // 3. Draw Player Sprite (Silhouette)
+        // This puts the player at the bottom of the screen
+        let groundY = canvas.height * 0.82; 
+        ctx.fillStyle = "rgba(0,0,0,0.85)";
+        ctx.fillRect(canvas.width/2 - player.w/2, groundY - player.h, player.w, player.h);
 
-        // Rain
-        ctx.strokeStyle = "rgba(255,255,255,0.1)";
-        for(let i=0; i<30; i++) {
+        // 4. Interaction Triggers based on walking distance
+        if (player.x > 800 && player.x < 1200) {
+            typeWriter("The station clock is still broken. Just like when I left.");
+        }
+
+        // 5. Cinematic Rain
+        ctx.strokeStyle = "rgba(255,255,255,0.15)";
+        for(let i=0; i<25; i++) {
             let rx = Math.random() * canvas.width;
             let ry = Math.random() * canvas.height;
-            ctx.beginPath(); ctx.moveTo(rx, ry); ctx.lineTo(rx-1, ry+15); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(rx, ry); ctx.lineTo(rx-1, ry+12); ctx.stroke();
         }
 
         requestAnimationFrame(draw);
