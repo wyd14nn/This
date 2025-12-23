@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>The Station - My Project</title>
+    <style>
+        body { margin: 0; background: #050508; overflow: hidden; display: flex; justify-content: center; align-items: center; height: 100vh; color: #a9b1d6; font-family: 'Courier New', monospace; }
+        #game-container { position: relative; width: 800px; height: 400px; border: 2px solid #1a1b26; overflow: hidden; cursor: pointer; }
+        #overlay { position: absolute; width: 100%; height: 100%; background: #000; display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 10; transition: opacity 2s; }
+        #dialogue-box { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); width: 75%; background: rgba(10, 10, 15, 0.9); border-left: 4px solid #7aa2f7; padding: 15px; font-size: 14px; pointer-events: none; height: 40px; }
+        canvas { display: block; image-rendering: pixelated; }
+    </style>
+</head>
+<body>
+
+<div id="game-container" onclick="startGame()">
+    <div id="overlay"><h1>HOW WE REMEMBER</h1><p>Click to Begin</p></div>
+    <canvas id="gameCanvas" width="800" height="400"></canvas>
+    <div id="dialogue-box"></div>
+</div>
+
+<script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const diagBox = document.getElementById('dialogue-box');
+    
+    let gameStarted = false;
+    let player = { x: 0, y: 300, w: 30, h: 60, speed: 4 };
+    let keys = {};
+
+    // Background Image (A Moody Station)
+    const bg = new Image();
+    bg.src = 'https://img.itch.zone/aW1nLzI5MzkyOTYucG5n/original/L0vOn4.png'; 
+
+    function startGame() {
+        if (!gameStarted) {
+            document.getElementById('overlay').style.opacity = "0";
+            setTimeout(() => document.getElementById('overlay').style.display = "none", 2000);
+            gameStarted = true;
+            typeWriter("I haven't been here in years. The rain hasn't changed.");
+        }
+    }
+
+    // Typewriter effect
+    let targetText = ""; let currentText = ""; let charIndex = 0;
+    function typeWriter(text) {
+        if (targetText === text) return;
+        targetText = text; currentText = ""; charIndex = 0;
+        flow();
+    }
+    function flow() {
+        if (charIndex < targetText.length) {
+            currentText += targetText.charAt(charIndex);
+            diagBox.innerHTML = currentText;
+            charIndex++; setTimeout(flow, 40);
+        }
+    }
+
+    window.addEventListener('keydown', e => keys[e.code] = true);
+    window.addEventListener('keyup', e => keys[e.code] = false);
+
+    function draw() {
+        if (!gameStarted) { requestAnimationFrame(draw); return; }
+
+        ctx.fillStyle = "#1a1b26";
+        ctx.fillRect(0, 0, 800, 400);
+
+        // Parallax Background
+        let bgX = -(player.x * 0.5) % 800;
+        ctx.drawImage(bg, bgX, 0, 800, 400);
+        ctx.drawImage(bg, bgX + 800, 0, 800, 400);
+
+        // Movement
+        if (keys['ArrowRight']) player.x += player.speed;
+        if (keys['ArrowLeft']) player.x -= player.speed;
+
+        // Player Silhouette
+        ctx.fillStyle = "#000";
+        ctx.fillRect(385, player.y, player.w, player.h);
+
+        // Logic
+        if (player.x > 600 && player.x < 1000) typeWriter("The wind is colder near the tracks.");
+
+        // Rain
+        ctx.strokeStyle = "rgba(122, 162, 247, 0.2)";
+        for(let i=0; i<15; i++) {
+            let rx = Math.random() * 800; let ry = Math.random() * 400;
+            ctx.beginPath(); ctx.moveTo(rx, ry); ctx.lineTo(rx-1, ry+10); ctx.stroke();
+        }
+
+        requestAnimationFrame(draw);
+    }
+    draw();
+</script>
+</body>
+</html>
